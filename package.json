@@ -6,10 +6,10 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "latest",
-    "wa-sticker-formatter": "latest",
-    "express": "latest",
-    "pino": "latest",
-    "qrcode-terminal": "latest"
+    "@whiskeysockets/baileys": "6.7.8",
+    "wa-sticker-formatter": "4.3.2",
+    "express": "4.18.2",
+    "pino": "8.17.2",
+    "qrcode-terminal": "0.12.0"
   }
 }
