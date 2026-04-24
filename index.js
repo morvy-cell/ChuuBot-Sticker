@@ -2,20 +2,27 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = requi
 const { Sticker, StickerTypes } = require("wa-sticker-formatter")
 const express = require("express")
 const pino = require("pino")
+const qrcode = require("qrcode-terminal") // ← Adiciona essa lib
 
 async function connectBot() {
     const { state, saveCreds } = await useMultiFileAuthState("auth_info_baileys")
 
     const sock = makeWASocket({
         auth: state,
-        printQRInTerminal: true,
-        logger: pino({ level: "silent" }) // Tira os logs poluídos
+        // printQRInTerminal: true, ← Remove essa linha
+        logger: pino({ level: "silent" })
     })
 
     sock.ev.on("creds.update", saveCreds)
 
     sock.ev.on("connection.update", (update) => {
-        const { connection, lastDisconnect } = update
+        const { connection, lastDisconnect, qr } = update // ← Adiciona 'qr' aqui
+
+        // Mostra o QR Code novo
+        if (qr) {
+            console.log("Escaneia o QR Code abaixo:")
+            qrcode.generate(qr, { small: true }) // ← Printa o QR no console
+        }
 
         if(connection === "close") {
             const shouldReconnect = lastDisconnect.error?.output?.statusCode!== DisconnectReason.loggedOut
@@ -35,45 +42,33 @@ async function connectBot() {
         const jid = msg.key.remoteJid
         const type = Object.keys(msg.message)[0]
 
-        // Se for imagem
         if (type === "imageMessage") {
             try {
-                await sock.sendMessage(jid, { text: "Recebi! Criando sua figurinha sem fundo..." })
-
-                // Baixa a imagem
+                await sock.sendMessage(jid, { text: "Criando sua figurinha..." })
                 const buffer = await sock.downloadMediaMessage(msg)
 
-                // Cria o sticker - já redimensiona
                 const sticker = new Sticker(buffer, {
-                    pack: "Figurinhas", // Nome do pacote
-                    author: "Chuu Bot", // Autor
-                    type: StickerTypes.FULL, // Tela cheia
-                    categories: ["🤩", "🎉"], // Emojis do pack
-                    id: "12345", // ID do pack
-                    quality: 70, // Qualidade 0-100
-                    
+                    pack: "Figurinhas",
+                    author: "Chuu Bot",
+                    type: StickerTypes.DEFAULT,
+                    quality: 70
                 })
 
-                // Envia como figurinha
                 await sock.sendMessage(jid, await sticker.toMessage())
-                await sock.sendMessage(jid, { text: "Pronto! Toca pra salvar 👆" })
+                await sock.sendMessage(jid, { text: "Pronto! 👆" })
 
             } catch (e) {
-                console.log("Erro ao criar sticker:", e)
-                await sock.sendMessage(jid, { text: "Opa, deu erro aqui. Manda outra foto?" })
+                await sock.sendMessage(jid, { text: "Deu erro. Tenta outra foto" })
             }
-
-        // Se for qualquer outra coisa
-        } else if (type === "conversation" || type === "extendedTextMessage") {
-             await sock.sendMessage(jid, { text: "Me manda uma foto que eu transformo em figurinha pra você" })
+        } else {
+             await sock.sendMessage(jid, { text: "Manda uma foto pra virar sticker" })
         }
     })
 }
 
 connectBot()
 
-// Servidor pra manter Railway/Replit online
 const app = express()
 const port = process.env.PORT || 3000
-app.get("/", (req, res) => res.send("Bot tá online!"))
-app.listen(port, () => console.log(`Servidor rodando na porta ${port}`))
+app.get("/", (req, res) => res.send("Online"))
+app.listen(port)
