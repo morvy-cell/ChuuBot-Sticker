@@ -9,6 +9,7 @@
     "@whiskeysockets/baileys": "latest",
     "wa-sticker-formatter": "latest",
     "express": "latest",
-    "pino": "latest"
+    "pino": "latest",
+    "qrcode-terminal": "latest"
   }
 }
